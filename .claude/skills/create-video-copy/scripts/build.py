@@ -59,7 +59,9 @@ def write_preview(ep, out_dir, name, mp4):
     import base64
     import html
     title = " ".join(ep.TITLE) if isinstance(ep.TITLE, (list, tuple)) else ep.TITLE
-    if getattr(ep, "PANELS", None):
+    if getattr(ep, "CAPTIONS", None):
+        items = "".join(f"<li>{html.escape(c)}</li>" for c in ep.CAPTIONS)
+    elif getattr(ep, "PANELS", None):
         items = "".join(f"<li>{html.escape(tg or '')}</li>" for _, tg, _bg in ep.PANELS)
     else:
         items = "".join(f"<li>{html.escape((tag + ' ') if tag else '')}{html.escape(cap)}</li>"
@@ -71,7 +73,7 @@ def write_preview(ep, out_dir, name, mp4):
     with open(out, "w") as f:
         f.write(PREVIEW.format(title=html.escape(title), version=html.escape(getattr(ep, "VERSION", "시안")),
                                secs=n / fps, b64=b64, items=items,
-                               layout={"slide": "1x1 슬라이드", "reveal": "위아래 2컷 리빌"}.get(getattr(ep, "LAYOUT", "grid"), "2×2 4컷")))
+                               layout={"slide": "1x1 슬라이드", "reveal": "위아래 2컷 리빌", "pastel4": "파스텔 4컷"}.get(getattr(ep, "LAYOUT", "grid"), "2×2 4컷")))
     print(out)
 
 

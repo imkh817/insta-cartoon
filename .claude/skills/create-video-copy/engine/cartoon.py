@@ -967,6 +967,202 @@ CHARACTERS.update({"human": human, "stick": stick, "ghost": ghost, "dino": dino,
                    "seal": seal, "octopus": octopus, "monster": monster})
 
 
+# ---------------- 토끼 화풍 그대로의 새 커플 (다람쥐·너구리, 양·알파카, 판다·레서판다, 병아리·오리) ----------------
+SQ = (214, 140, 80)
+SQ_L = (250, 222, 180)
+RAC = (156, 156, 168)
+RAC_D = (78, 76, 90)
+WOOL = (255, 255, 252)
+SHEEP_F = (255, 236, 222)
+ALPA = (246, 228, 196)
+PANDA_K = (52, 48, 56)
+RP = (214, 92, 52)
+CHICK = (255, 218, 70)
+DUCK_BILL = (255, 160, 40)
+
+
+def _girl_bow(p, H, hr, tilt, dx=0.05, dy=-0.86, s=1.0):
+    bow(p, *H(dx, dy), 0.4 * hr * s, tilt)
+
+
+def squirrel(p, hx, hy, hr, tilt=0, eyes="sparkle", mouth="smile", extras=("blush",), body=None, arms=(),
+             cheeks=0.0, ribbon=True):
+    """다람쥐 여친: 몸 뒤로 크게 말린 꼬리, 귀 끝 털, 도토리 볼."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        p.blob(bx + brx * 1.15, by - bry * 0.9, brx * 0.75, bry * 1.55, SQ, 8, ang=18, k=2.0)
+        p.blob(bx + brx * 1.05, by - bry * 0.85, brx * 0.32, bry * 1.1, SQ_L, 0, ang=18)
+        p.blob(bx, by, brx, bry, SQ, 7)
+        p.blob(bx, by + bry * 0.12, brx * 0.6, bry * 0.65, SQ_L, 0)
+    for sgn in (-1, 1):
+        p.shape([H(sgn * 0.78, -0.5), H(sgn * 0.35, -0.85), H(sgn * 0.72, -1.3)], SQ, 7)
+        p.line([H(sgn * 0.72, -1.3), H(sgn * 0.8, -1.48)], 5)
+        p.shape([H(sgn * 0.66, -0.62), H(sgn * 0.46, -0.82), H(sgn * 0.66, -1.08)], BUNNY_IN, 0)
+    p.blob(hx, hy, 1.08 * hr, 0.95 * hr, SQ, 8, ang=tilt, k=1.0)
+    p.blob(*H(0, 0.38), 0.62 * hr, 0.45 * hr, SQ_L, 0, ang=tilt)
+    if cheeks:
+        for sgn in (-1, 1):
+            p.blob(*H(sgn * 0.66, 0.42), 0.2 * hr * (1 + cheeks), 0.17 * hr * (1 + cheeks), SQ_L, 6)
+    if ribbon:
+        _girl_bow(p, H, hr, tilt, 0.0, -0.9, 0.85)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+    _limbs(p, arms, SQ, 16)
+
+
+def raccoon(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=()):
+    """너구리 남친: 눈가 검은 마스크, 줄무늬 꼬리."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        tail = [((bx + brx * 0.8, by + bry * 0.4)), ((bx + brx * 1.55, by - bry * 0.3))]
+        p.capsule(tail[0], tail[1], 0.32 * brx, 0.38 * brx, RAC, 7)
+        for k in (0.35, 0.7):
+            x = tail[0][0] + (tail[1][0] - tail[0][0]) * k
+            y = tail[0][1] + (tail[1][1] - tail[0][1]) * k
+            p.blob(x, y, 0.12 * brx, 0.3 * brx, RAC_D, 0, ang=-40)
+        p.blob(bx, by, brx, bry, RAC, 7)
+        p.blob(bx, by + bry * 0.12, brx * 0.58, bry * 0.62, (232, 232, 236), 0)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.72, -0.7), 0.28 * hr, 0.28 * hr, RAC, 7)
+        p.blob(*H(sgn * 0.72, -0.7), 0.13 * hr, 0.13 * hr, RAC_D, 0)
+    p.blob(hx, hy, 1.08 * hr, 0.95 * hr, RAC, 8, ang=tilt, k=2.4)
+    p.blob(*H(0, 0.4), 0.42 * hr, 0.3 * hr, (240, 240, 244), 0, ang=tilt)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.4, 0.04), 0.34 * hr, 0.24 * hr, RAC_D, 0, ang=tilt + sgn * 18)
+        if eyes not in ("sparkle", "teary"):
+            p.blob(*H(sgn * 0.36, 0.02), 0.13 * hr, 0.15 * hr, WHITE, 0)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras, muzzle=False)
+    p.blob(*H(0, 0.3), 0.1 * hr, 0.07 * hr, INK, 0)
+    _limbs(p, arms, RAC_D, 16)
+
+
+def sheep(p, hx, hy, hr, tilt=0, eyes="sparkle", mouth="smile", extras=("blush",), body=None, arms=(), ribbon=True):
+    """양 여친: 뭉게뭉게 양털 머리 + 몸, 옆으로 늘어진 귀."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        for k in range(10):
+            a = 2 * math.pi * k / 10
+            p.blob(bx + brx * 0.82 * math.cos(a), by + bry * 0.8 * math.sin(a), brx * 0.36, bry * 0.36, WOOL, 7)
+        p.blob(bx, by, brx * 0.88, bry * 0.86, WOOL, 0)
+    for k in range(9):
+        a = math.pi * (1.05 + 0.9 * k / 8)
+        p.blob(*H(1.0 * math.cos(a), -0.15 + 0.95 * math.sin(a)), 0.32 * hr, 0.3 * hr, WOOL, 7, k=k)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 1.02, 0.08), 0.3 * hr, 0.14 * hr, SHEEP_F, 7, ang=tilt + sgn * 20)
+    p.blob(hx, hy + 0.08 * hr, 0.88 * hr, 0.82 * hr, SHEEP_F, 8, ang=tilt, k=0.3)
+    for k in range(5):
+        a = math.pi * (1.15 + 0.7 * k / 4)
+        p.blob(*H(0.72 * math.cos(a), -0.1 + 0.7 * math.sin(a)), 0.22 * hr, 0.2 * hr, WOOL, 6, k=k + 3)
+    if ribbon:
+        _girl_bow(p, H, hr, tilt, 0.42, -0.98, 0.8)
+    face(p, hx, hy + 0.12 * hr, hr * 0.92, tilt, eyes, mouth, extras)
+    _limbs(p, arms, WOOL, 15)
+
+
+def alpaca(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=()):
+    """알파카 남친: 긴 목, 정수리 복슬 앞머리, 뾰족 귀."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        p.capsule((bx, by - bry * 0.3), H(0, 0.7), 0.42 * hr, 0.4 * hr, ALPA, 7)
+        p.blob(bx, by, brx, bry, ALPA, 7)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.62, -0.95), 0.14 * hr, 0.32 * hr, ALPA, 7, ang=tilt + sgn * 12)
+    p.blob(hx, hy, 0.95 * hr, 0.98 * hr, ALPA, 8, ang=tilt, k=1.3)
+    for k in range(5):
+        p.blob(*H(-0.42 + 0.21 * k, -0.85 - 0.08 * (k % 2)), 0.2 * hr, 0.18 * hr, WOOL, 6, k=k)
+    face(p, hx, hy + 0.05 * hr, hr * 0.95, tilt, eyes, mouth, extras, muzzle=True)
+    _limbs(p, arms, ALPA, 15)
+
+
+def panda(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=("blush",), body=None, arms=(), ribbon=True):
+    """판다 여친: 흰 얼굴 + 검은 귀·눈테·팔다리."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        for sgn in (-1, 1):
+            p.blob(bx + sgn * brx * 0.45, by + bry * 0.85, brx * 0.3, bry * 0.22, PANDA_K, 6)
+        p.blob(bx, by, brx, bry, WHITE, 7)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.75, -0.72), 0.3 * hr, 0.28 * hr, PANDA_K, 7)
+    p.blob(hx, hy, 1.08 * hr, 0.95 * hr, WHITE, 8, ang=tilt, k=0.8)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.38, 0.06), 0.27 * hr, 0.34 * hr, PANDA_K, 0, ang=tilt + sgn * 30)
+        if eyes not in ("sparkle", "teary"):
+            p.blob(*H(sgn * 0.36, 0.02), 0.12 * hr, 0.14 * hr, WHITE, 0)
+    if ribbon:
+        _girl_bow(p, H, hr, tilt, 0.0, -0.9, 0.85)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+    p.blob(*H(0, 0.3), 0.09 * hr, 0.06 * hr, INK, 0)
+    _limbs(p, arms, PANDA_K, 16)
+
+
+def red_panda(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=()):
+    """레서판다 남친: 적갈색, 흰 눈썹·주둥이·귀 안쪽, 줄무늬 꼬리."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        t0, t1 = (bx - brx * 0.8, by + bry * 0.5), (bx - brx * 1.6, by - bry * 0.2)
+        p.capsule(t0, t1, 0.34 * brx, 0.38 * brx, RP, 7)
+        for k in (0.35, 0.7):
+            p.blob(t0[0] + (t1[0] - t0[0]) * k, t0[1] + (t1[1] - t0[1]) * k, 0.12 * brx, 0.32 * brx, (150, 60, 36), 0, ang=40)
+        p.blob(bx, by, brx, bry, (120, 52, 40), 7)
+    for sgn in (-1, 1):
+        p.shape([H(sgn * 0.85, -0.45), H(sgn * 0.42, -0.85), H(sgn * 0.88, -1.15)], RP, 7)
+        p.shape([H(sgn * 0.76, -0.58), H(sgn * 0.52, -0.8), H(sgn * 0.78, -0.98)], WHITE, 0)
+    p.blob(hx, hy, 1.1 * hr, 0.95 * hr, RP, 8, ang=tilt, k=1.9)
+    p.blob(*H(0, 0.42), 0.42 * hr, 0.3 * hr, WHITE, 0, ang=tilt)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.36, -0.3), 0.12 * hr, 0.08 * hr, WHITE, 0)
+        p.blob(*H(sgn * 0.75, 0.3), 0.2 * hr, 0.16 * hr, WHITE, 0)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+    p.blob(*H(0, 0.3), 0.09 * hr, 0.06 * hr, INK, 0)
+    _limbs(p, arms, (120, 52, 40), 16)
+
+
+def chick(p, hx, hy, hr, tilt=0, eyes="sparkle", mouth="none", extras=("blush",), body=None, arms=(), ribbon=True,
+          beak_open=False):
+    """병아리 여친: 머리=몸 한 덩어리, 머리털 세 가닥, 작은 부리."""
+    H = _H(hx, hy, hr, tilt)
+    for sgn in (-1, 1):
+        p.line([H(sgn * 0.3, 0.92), H(sgn * 0.32, 1.2)], 6, DUCK_BILL)
+        p.line([H(sgn * 0.32, 1.2), H(sgn * 0.45, 1.25)], 5, DUCK_BILL)
+    for k in (-1, 0, 1):
+        p.arc(*H(0.1 * k, -1.02), 0.1 * hr, 0.16 * hr, 190 + 25 * k, 330 + 25 * k, 5)
+    p.blob(hx, hy, 1.05 * hr, 1.0 * hr, CHICK, 8, ang=tilt, k=0.9)
+    if ribbon:
+        _girl_bow(p, H, hr, tilt, 0.45, -0.85, 0.75)
+    face(p, hx, hy - 0.05 * hr, hr * 0.95, tilt, eyes, "none", extras)
+    if beak_open:
+        p.shape([H(-0.16, 0.3), H(0.16, 0.3), H(0, 0.42)], DUCK_BILL, 5)
+        p.shape([H(-0.13, 0.46), H(0.13, 0.46), H(0, 0.56)], DUCK_BILL, 5)
+    else:
+        p.shape([H(-0.16, 0.3), H(0.16, 0.3), H(0, 0.48)], DUCK_BILL, 5)
+    _limbs(p, arms, CHICK, 13)
+
+
+def duck(p, hx, hy, hr, tilt=0, eyes="dot", mouth="none", extras=(), body=None, arms=()):
+    """오리 남친: 흰 몸, 납작하고 넓은 주황 부리, 머리털 한 가닥."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        for sgn in (-1, 1):
+            p.blob(bx + sgn * brx * 0.45, by + bry * 0.95, brx * 0.32, bry * 0.15, DUCK_BILL, 5)
+        p.blob(bx, by, brx, bry, WHITE, 7)
+    p.arc(*H(0.05, -1.0), 0.1 * hr, 0.18 * hr, 190, 320, 5)
+    p.blob(hx, hy, 1.0 * hr, 0.95 * hr, WHITE, 8, ang=tilt, k=1.5)
+    face(p, hx, hy - 0.08 * hr, hr, tilt, eyes, "none", extras)
+    p.blob(*H(0, 0.42), 0.42 * hr, 0.17 * hr, DUCK_BILL, 6, ang=tilt)
+    p.line([H(-0.3, 0.42), H(0.3, 0.42)], 3)
+    _limbs(p, arms, WHITE, 15)
+
+
+CHARACTERS.update({"squirrel": squirrel, "raccoon": raccoon, "sheep": sheep, "alpaca": alpaca,
+                   "panda": panda, "red_panda": red_panda, "chick": chick, "duck": duck})
+
+
 # ---------------- 소품 / 효과 (리빌형에서 추가) ----------------
 PUFF = (214, 226, 140)
 
@@ -1114,6 +1310,11 @@ def render_episode(ep, out_dir, only=None):
     n = getattr(ep, "N", N)
     frames = [only] if only is not None else list(range(n))
     for t in frames:
-        fn = {"slide": render_frame_slide, "reveal": render_frame_reveal}.get(getattr(ep, "LAYOUT", "grid"), render_frame)
+        layout = getattr(ep, "LAYOUT", "grid")
+        if layout == "pastel4":
+            import mongle
+            fn = mongle.render_frame_pastel4
+        else:
+            fn = {"slide": render_frame_slide, "reveal": render_frame_reveal}.get(layout, render_frame)
         fn(ep, t).save(os.path.join(fdir, f"f_{t:03d}.png"))
     return len(frames)
