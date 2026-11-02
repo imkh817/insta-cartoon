@@ -6,7 +6,7 @@
 import math
 import os
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 W, H = 1080, 1920
 SS = 2
@@ -206,6 +206,8 @@ def face(p, hx, hy, hr, tilt, eyes, mouth, extras=(), muzzle=False):
             p.arc(cx, cy + 0.05 * hr, 0.13 * hr, 0.11 * hr, 200, 340, 5, ang=tilt)
         elif eyes == "closed":
             p.arc(cx, cy - 0.04 * hr, 0.13 * hr, 0.08 * hr, 15, 165, 5, ang=tilt)
+        elif eyes == "squeeze":      # 질끈 감은 눈 > <
+            p.line([H(sgn * (ex + 0.13), -0.1), H(sgn * (ex - 0.1), 0.02), H(sgn * (ex + 0.13), 0.13)], 5)
         elif eyes == "half":
             p.line([H(sgn * ex - 0.15, -0.01), H(sgn * ex + 0.15, -0.01)], 5)
             p.arc(*H(sgn * ex, -0.01), 0.1 * hr, 0.09 * hr, 10, 170, 5, ang=tilt)
@@ -254,7 +256,7 @@ def face(p, hx, hy, hr, tilt, eyes, mouth, extras=(), muzzle=False):
 
 
 def bunny(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None,
-          arms=(), arms_back=(), ribbon=True, ears="up", body_fill=BUNNY, legs=()):
+          arms=(), arms_back=(), ribbon=True, ears="up", body_fill=BUNNY, legs=(), face_fill=BUNNY):
     for (sx, sy), (ax, ay) in arms_back:
         p.capsule((sx, sy), (ax, ay), 17, 20, body_fill)
     if body:
@@ -276,7 +278,7 @@ def bunny(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None
         cx, cy = rot(bx, by, 0, -0.55 * hr, ang)
         p.blob(cx, cy, 0.24 * hr, 0.62 * hr, BUNNY, 7, ang=ang, k=i)
         p.blob(*rot(bx, by, 0, -0.5 * hr, ang), 0.11 * hr, 0.42 * hr, BUNNY_IN, 0, ang=ang)
-    p.blob(hx, hy, 1.08 * hr, 0.95 * hr, BUNNY, 8, ang=tilt, k=1.3)
+    p.blob(hx, hy, 1.08 * hr, 0.95 * hr, face_fill, 8, ang=tilt, k=1.3)
     if ribbon:
         rx_, ry_ = rot(hx, hy, 0.05 * hr, -0.86 * hr, tilt)
         for sgn in (-1, 1):
@@ -295,7 +297,8 @@ def bunny(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None
         p.capsule((sx, sy), (ax, ay), 17, 20, body_fill)
 
 
-def bear(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), arms_back=()):
+def bear(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), arms_back=(),
+         face_fill=BEAR):
     for (sx, sy), (ax, ay) in arms_back:
         p.capsule((sx, sy), (ax, ay), 18, 22, BEAR)
     if body:
@@ -306,7 +309,7 @@ def bear(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None,
         ex_, ey_ = rot(hx, hy, sgn * 0.72 * hr, -0.68 * hr, tilt)
         p.blob(ex_, ey_, 0.3 * hr, 0.3 * hr, BEAR, 7)
         p.blob(ex_, ey_, 0.15 * hr, 0.15 * hr, MUZZLE, 0)
-    p.blob(hx, hy, 1.08 * hr, 0.95 * hr, BEAR, 8, ang=tilt, k=2.1)
+    p.blob(hx, hy, 1.08 * hr, 0.95 * hr, face_fill, 8, ang=tilt, k=2.1)
     face(p, hx, hy, hr, tilt, eyes, mouth, extras, muzzle=True)
     for (sx, sy), (ax, ay) in arms:
         p.capsule((sx, sy), (ax, ay), 18, 22, BEAR)
@@ -425,12 +428,141 @@ def render_frame_slide(ep, t):
     return full.resize((W, H), Image.LANCZOS)
 
 
+# ---------------- 소품 / 효과 (리빌형에서 추가) ----------------
+PUFF = (214, 226, 140)
+
+
+def puff(p, x, y, s=1.0, k=0.0):
+    """방귀 구름."""
+    for dx, dy, r in ((0, 0, 26), (-24, 8, 18), (22, 10, 20), (4, -18, 18)):
+        p.blob(x + dx * s, y + dy * s, r * s, r * s * 0.9, PUFF, 5, k=k + dx)
+    for dx, dy, r in ((0, 0, 24), (-24, 8, 16), (22, 10, 18), (4, -18, 16)):
+        p.blob(x + dx * s, y + dy * s, r * s, r * s * 0.9, PUFF, 0)
+
+
+def tag(p, x, y, text, size=34, fill=YELLOW):
+    """컷 왼쪽 위 노란 태그 (예: '연애초: 방귀를 참음')."""
+    w = p.text_w(text, size)
+    p.shape([(x, y), (x + w + 40, y), (x + w + 40, y + size + 30), (x, y + size + 30)], fill, 6)
+    p.text(x + 20, y + (size + 30) / 2 + 1, text, size, anchor="lm")
+
+
+def side_label(p, x, y, lines, size=30, anchor="mm"):
+    """컷 아래 구석 라벨 (예: '여친:' / '방구참기' / '3시간째')."""
+    for i, s in enumerate(lines):
+        p.text(x, y + i * (size + 8), s, size, anchor=anchor)
+
+
+_bg_cache = {}
+
+
+def _lerp(a, b, f):
+    return tuple(int(a[i] + (b[i] - a[i]) * f) for i in range(3))
+
+
+def bg_gradient(w, h, c1, c2, c3=None):
+    """대각선 파스텔 그라데이션 (+반짝 점). w,h는 1x 좌표."""
+    key = ("grad", w, h, c1, c2, c3)
+    if key in _bg_cache:
+        return _bg_cache[key]
+    W2, H2 = w * SS, h * SS
+    small = Image.new("RGB", (64, 64))
+    px = small.load()
+    for yy in range(64):
+        for xx in range(64):
+            f = (xx + yy) / 126
+            if c3 is None:
+                px[xx, yy] = _lerp(c1, c2, f)
+            else:
+                px[xx, yy] = _lerp(c1, c2, f * 2) if f < 0.5 else _lerp(c2, c3, (f - 0.5) * 2)
+    img = small.resize((W2, H2), Image.BICUBIC)
+    glow = Image.new("RGB", (W2, H2), (0, 0, 0))
+    g = ImageDraw.Draw(glow)
+    import random
+    rnd = random.Random(7)
+    for _ in range(26):
+        cx, cy, r = rnd.uniform(0, W2), rnd.uniform(0, H2), rnd.uniform(4, 14) * SS
+        g.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(90, 90, 90))
+    glow = glow.filter(ImageFilter.GaussianBlur(6 * SS))
+    from PIL import ImageChops
+    img = ImageChops.add(img, glow)
+    _bg_cache[key] = img
+    return img
+
+
+def bg_heart_glow(w, h, base=(255, 196, 222), edge=(255, 150, 196)):
+    """핑크 배경 + 빛나는 하트 후광 (애정 장면용)."""
+    key = ("heart", w, h, base, edge)
+    if key in _bg_cache:
+        return _bg_cache[key]
+    W2, H2 = w * SS, h * SS
+    small = Image.new("RGB", (64, 64))
+    px = small.load()
+    for yy in range(64):
+        for xx in range(64):
+            d = min(1.0, math.hypot((xx - 32) / 32, (yy - 32) / 32))
+            px[xx, yy] = _lerp((255, 236, 244), edge, d ** 1.4)
+    img = small.resize((W2, H2), Image.BICUBIC)
+    glow = Image.new("RGB", (W2, H2), (0, 0, 0))
+    g = ImageDraw.Draw(glow)
+    for sc, wd in ((0.42, 26), (0.3, 18)):
+        pts = []
+        for i in range(80):
+            tt = 2 * math.pi * i / 80
+            x = 16 * math.sin(tt) ** 3
+            y = -(13 * math.cos(tt) - 5 * math.cos(2 * tt) - 2 * math.cos(3 * tt) - math.cos(4 * tt))
+            pts.append((W2 / 2 + x * h * sc * SS / 16, H2 * 0.48 + y * h * sc * SS / 16))
+        g.line(pts + [pts[0]], fill=(255, 255, 255), width=int(wd * SS), joint="curve")
+    glow = glow.filter(ImageFilter.GaussianBlur(10 * SS))
+    from PIL import ImageChops
+    img = ImageChops.add(img, ImageChops.multiply(glow, Image.new("RGB", (W2, H2), (200, 200, 200))))
+    _bg_cache[key] = img
+    return img
+
+
+# ---------------- 위아래 2컷 리빌형 레이아웃 ----------------
+RV_W, RV_H = 848, 487          # 컷 크기 (1x 좌표)
+RV_X = 116
+RV_Y = [520, 1095]
+RV_TITLE_Y = (300, 430)
+
+
+def _render_panel(ep, idx, t, alpha=1.0):
+    fn, tag_text, bg = ep.PANELS[idx]
+    img = bg(RV_W, RV_H).copy() if callable(bg) else Image.new("RGB", (RV_W * SS, RV_H * SS), bg or WHITE)
+    p = Pen(img, t % 3)
+    fn(p, t)
+    if tag_text:
+        tag(p, -4, -4, tag_text)
+    p.shape([(4, 4), (RV_W - 4, 3), (RV_W - 3, RV_H - 4), (3, RV_H - 3)], None, 10)
+    if alpha < 1.0:
+        img = Image.blend(Image.new("RGB", img.size, WHITE), img, alpha)
+    return img
+
+
+def render_frame_reveal(ep, t):
+    img = Image.new("RGB", (W * SS, H * SS), WHITE)
+    p = Pen(img, t % 3)
+    y0, y1 = RV_TITLE_Y
+    p.shape([(RV_X - 10, y0), (RV_X + RV_W + 10, y0 - 3), (RV_X + RV_W + 12, y1), (RV_X - 12, y1 + 3)], YELLOW, 8)
+    p.text(540, (y0 + y1) / 2 + 2, ep.TITLE, 52)
+
+    reveal, fade = ep.REVEAL_AT, getattr(ep, "REVEAL_FADE", 5)
+    n = getattr(ep, "N", N)
+    img.paste(_render_panel(ep, 0, t), (RV_X * SS, RV_Y[0] * SS))
+    if t >= reveal:
+        a = min(1.0, (t - reveal + 1) / (fade + 1))
+        a = min(a, (n - t) / 4) if n - t < 4 else a      # 루프 직전 살짝 페이드아웃
+        img.paste(_render_panel(ep, 1, t, a), (RV_X * SS, RV_Y[1] * SS))
+    return img.resize((W, H), Image.LANCZOS)
+
+
 def render_episode(ep, out_dir, only=None):
     fdir = os.path.join(out_dir, "frames")
     os.makedirs(fdir, exist_ok=True)
     n = getattr(ep, "N", N)
     frames = [only] if only is not None else list(range(n))
     for t in frames:
-        fn = render_frame_slide if getattr(ep, "LAYOUT", "grid") == "slide" else render_frame
+        fn = {"slide": render_frame_slide, "reveal": render_frame_reveal}.get(getattr(ep, "LAYOUT", "grid"), render_frame)
         fn(ep, t).save(os.path.join(fdir, f"f_{t:03d}.png"))
     return len(frames)
