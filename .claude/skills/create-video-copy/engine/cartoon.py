@@ -781,6 +781,192 @@ CHARACTERS.update({"rice": rice, "gim": gim, "peach": peach, "sweetpotato": swee
                    "steamed_bun": steamed_bun, "cloud": cloud, "bolt": bolt})
 
 
+# ---------------- 추가 캐릭터 3차 (다른 결: 사람·막대·유령·공룡·바다·몬스터) ----------------
+SKIN = (255, 226, 204)
+HAIR = (78, 54, 44)
+DRESS = (255, 150, 182)
+SHIRT = (112, 162, 232)
+GHOST = (250, 250, 255)
+REX = (255, 168, 190)
+STEGO = (140, 206, 128)
+SEAL = (222, 228, 238)
+OCTO = (255, 132, 96)
+HORNMON = (196, 160, 240)
+FURMON = (120, 214, 170)
+
+
+def human(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), gender="girl"):
+    """사람 2등신: 여친은 똥머리+단발+원피스, 남친은 짧은 머리+티셔츠."""
+    H = _H(hx, hy, hr, tilt)
+    top = DRESS if gender == "girl" else SHIRT
+    if body:
+        bx, by, brx, bry = body
+        for sgn in (-1, 1):
+            p.capsule((bx + sgn * brx * 0.4, by + bry * 0.6), (bx + sgn * brx * 0.45, by + bry * 1.25), 11, 13, SKIN)
+        if gender == "girl":
+            p.shape([(bx - brx * 0.55, by - bry * 0.9), (bx + brx * 0.55, by - bry * 0.9),
+                     (bx + brx * 1.05, by + bry * 0.85), (bx - brx * 1.05, by + bry * 0.85)], top, 7)
+        else:
+            p.blob(bx, by, brx * 0.85, bry, top, 7)
+    if gender == "girl":
+        p.blob(*H(0, 0.12), 1.16 * hr, 1.05 * hr, HAIR, 8, ang=tilt)
+        p.blob(*H(0, -1.08), 0.34 * hr, 0.3 * hr, HAIR, 7)
+    p.blob(hx, hy, 1.0 * hr, 0.95 * hr, SKIN, 8, ang=tilt, k=0.5)
+    pts = [H(1.04 * math.cos(math.radians(a)), 0.98 * math.sin(math.radians(a))) for a in range(185, 356, 10)]
+    if gender == "girl":
+        pts += [H(0.85, -0.3), H(0.5, -0.42), H(0.3, -0.3), H(0.0, -0.45), H(-0.3, -0.32), H(-0.6, -0.42), H(-0.9, -0.25)]
+        p.shape(pts, HAIR, 7)
+        bow(p, *H(0.38, -1.12), 0.28 * hr, tilt + 15)
+    else:
+        pts += [H(0.9, -0.35), H(0.6, -0.5), H(0.35, -0.38), H(0.1, -0.52), H(-0.2, -0.4), H(-0.5, -0.52), H(-0.88, -0.35)]
+        p.shape(pts, HAIR, 7)
+        p.line([H(0.05, -0.98), H(0.15, -1.2)], 5, HAIR)
+    face(p, hx, hy + 0.1 * hr, hr * 0.92, tilt, eyes, mouth, extras)
+    _limbs(p, arms, SKIN, 10)
+
+
+def stick(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), gender="girl", legs=None):
+    """막대인간: 동그란 머리 + 선 몸통/팔다리. arms=[(손끝)] 은 어깨에서 그 점까지 선."""
+    H = _H(hx, hy, hr, tilt)
+    neck = H(0, 1.0)
+    hip = (neck[0], neck[1] + 1.5 * hr)
+    p.line([neck, hip], 6)
+    for (ax, ay) in (arms or [(neck[0] - 0.9 * hr, neck[1] + 1.0 * hr), (neck[0] + 0.9 * hr, neck[1] + 1.0 * hr)]):
+        p.line([(neck[0], neck[1] + 0.35 * hr), (ax, ay)], 6)
+    for (lx, ly) in (legs or [(hip[0] - 0.55 * hr, hip[1] + 1.2 * hr), (hip[0] + 0.55 * hr, hip[1] + 1.2 * hr)]):
+        p.line([hip, (lx, ly)], 6)
+    p.blob(hx, hy, hr, hr, WHITE, 7, ang=tilt)
+    if gender == "girl":
+        bow(p, *H(0.45, -0.9), 0.3 * hr, tilt + 20)
+    else:
+        p.arc(*H(0.05, -1.08), 0.12 * hr, 0.16 * hr, 180, 320, 5, ang=tilt)
+    face(p, hx, hy, hr * 0.85, tilt, eyes, mouth, extras)
+
+
+def ghost(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), ribbon=False, halo=False):
+    """유령: 위는 둥글고 아래는 물결 꼬리. halo면 천사 고리."""
+    H = _H(hx, hy, hr, tilt)
+    if halo:
+        p.blob(*H(0, -1.25), 0.5 * hr, 0.14 * hr, None, 6, color=SPARK)
+    pts = [H(1.0 * math.cos(math.radians(a)), 1.0 * math.sin(math.radians(a))) for a in range(180, 361, 10)]
+    pts += [H(1.0, 0.6), H(1.05, 1.15)]
+    for i in range(6):
+        x = 1.05 - (i + 1) * 0.35
+        pts.append(H(x + 0.17, 1.15 - 0.22 * (i % 2 == 0)))
+        pts.append(H(x, 1.15))
+    pts += [H(-1.0, 0.6)]
+    p.shape(pts, GHOST, 8)
+    p.blob(*H(0.55, 0.75), 0.28 * hr, 0.18 * hr, (226, 232, 250), 0)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 1.0, 0.35), 0.2 * hr, 0.13 * hr, GHOST, 6, ang=tilt + sgn * 30)
+    if ribbon:
+        bow(p, *H(0.4, -0.92), 0.3 * hr, tilt + 15)
+    face(p, hx, hy - 0.05 * hr, hr * 0.9, tilt, eyes, mouth, extras)
+
+
+def dino(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), kind="rex", ribbon=False):
+    """공룡: rex(분홍, 짧은 팔) / stego(초록, 등 판)."""
+    H = _H(hx, hy, hr, tilt)
+    col = REX if kind == "rex" else STEGO
+    plate = (255, 120, 150) if kind == "rex" else (250, 210, 80)
+    if body:
+        bx, by, brx, bry = body
+        p.capsule((bx + brx * 0.6, by + bry * 0.5), (bx + brx * 1.6, by + bry * 0.9), 0.32 * brx, 0.1 * brx, col)
+        for sgn in (-1, 1):
+            p.capsule((bx + sgn * brx * 0.45, by + bry * 0.6), (bx + sgn * brx * 0.5, by + bry * 1.15), 14, 16, col)
+        p.blob(bx, by, brx, bry, col, 7)
+        p.blob(bx, by + bry * 0.15, brx * 0.6, bry * 0.65, (255, 240, 220), 0)
+    for k, (dx, dy) in enumerate(((-0.55, -0.85), (0.0, -1.02), (0.55, -0.85))):
+        b0, b1 = H(dx - 0.18, dy + 0.14), H(dx + 0.18, dy + 0.14)
+        tip = H(dx * 1.15, dy - 0.38)
+        p.shape([b0, tip, b1], plate, 6)
+    p.blob(hx, hy, 1.1 * hr, 0.95 * hr, col, 8, ang=tilt, k=1.6)
+    if ribbon:
+        bow(p, *H(-0.75, -0.65), 0.28 * hr, tilt - 25)
+    face(p, hx, hy + 0.05 * hr, hr, tilt, eyes, mouth, extras)
+    if kind == "rex" and body:
+        bx, by, brx, bry = body
+        for sgn in (-1, 1):
+            p.capsule((bx + sgn * brx * 0.45, by - bry * 0.35), (bx + sgn * brx * 0.62, by - bry * 0.15), 9, 9, col, 5)
+    _limbs(p, arms, col, 13)
+
+
+def seal(p, hx, hy, hr, tilt=0, eyes="dot", mouth="w", extras=(), body=None, arms=(), ribbon=True):
+    """물범: 회백색 몽실 몸 + 점박이 + 수염 점, 지느러미 꼬리."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        p.blob(bx + brx * 1.05, by + bry * 0.55, brx * 0.42, bry * 0.22, SEAL, 6, ang=-25)
+        p.blob(bx, by, brx * 1.15, bry * 0.8, SEAL, 7)
+        for dx, dy in ((-0.4, -0.2), (0.3, 0.1), (0.6, -0.35)):
+            p.blob(bx + dx * brx, by + dy * bry, 7, 6, (170, 180, 195), 0)
+    p.blob(hx, hy, 1.08 * hr, 0.98 * hr, SEAL, 8, ang=tilt, k=0.9)
+    for dx, dy in ((-0.7, -0.5), (0.65, -0.62), (0.1, -0.8)):
+        p.blob(*H(dx, dy), 0.06 * hr, 0.05 * hr, (170, 180, 195), 0)
+    if ribbon:
+        bow(p, *H(0.5, -0.9), 0.3 * hr, tilt + 15)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+    for sgn in (-1, 1):
+        for k in range(3):
+            p.blob(*H(sgn * (0.2 + 0.08 * k), 0.5 + 0.05 * (k % 2)), 0.02 * hr, 0.02 * hr, INK, 0)
+    _limbs(p, arms, SEAL, 13)
+
+
+def octopus(p, hx, hy, hr, tilt=0, eyes="dot", mouth="o", extras=(), body=None, arms=(), t=0, blush_body=False):
+    """문어: 둥근 머리 + 물결 다리 4개. blush_body면 부끄러워 온몸이 빨개짐."""
+    H = _H(hx, hy, hr, tilt)
+    col = (255, 90, 90) if blush_body else OCTO
+    for i, sgn in enumerate((-1.2, -0.45, 0.45, 1.2)):
+        pts = []
+        for k in range(9):
+            f = k / 8
+            pts.append(H(sgn * (0.55 + 0.45 * f) + 0.12 * math.sin(f * 5 + t * 0.8 + i), 0.6 + 0.9 * f))
+        p.stroke(pts, 0.36 * hr * 1.0, False, INK)
+        p.stroke(pts, 0.36 * hr * 0.72, False, col)
+    p.blob(hx, hy, 1.0 * hr, 1.05 * hr, col, 8, ang=tilt, k=2.2)
+    p.blob(*H(-0.4, -0.55), 0.18 * hr, 0.12 * hr, (255, 200, 180), 0, ang=tilt - 30)
+    face(p, hx, hy + 0.12 * hr, hr * 0.92, tilt, eyes, mouth, extras)
+    _limbs(p, arms, col, 12)
+
+
+def monster(p, hx, hy, hr, tilt=0, eyes="dot", mouth="grin", extras=(), body=None, arms=(), kind="horn"):
+    """몬스터: horn(라일락, 작은 뿔 + 송곳니) / fur(민트, 털 삐죽 + 외눈)."""
+    H = _H(hx, hy, hr, tilt)
+    col = HORNMON if kind == "horn" else FURMON
+    for sgn in (-1, 1):
+        p.capsule(H(sgn * 0.45, 0.82), H(sgn * 0.5, 1.2), 0.12 * hr, 0.14 * hr, col, 5)
+    if kind == "horn":
+        for sgn in (-1, 1):
+            p.shape([H(sgn * 0.62, -0.62), H(sgn * 0.78, -1.25), H(sgn * 0.3, -0.85)], (255, 246, 214), 6)
+        p.blob(hx, hy, 1.05 * hr, 0.98 * hr, col, 8, ang=tilt, k=3.1)
+        face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+        p.shape([H(0.12, 0.47), H(0.22, 0.47), H(0.17, 0.62)], WHITE, 3)
+    else:
+        n = 26
+        pts = []
+        for i in range(n):
+            a = 2 * math.pi * i / n
+            r = 1.08 if i % 2 == 0 else 0.92
+            pts.append(H(r * math.cos(a), r * 0.98 * math.sin(a)))
+        p.shape(pts, col, 7)
+        ex, ey = H(0, -0.05)
+        if eyes == "heart":
+            p.heart(ex, ey, 0.32 * hr, (255, 60, 110), 5)
+        elif eyes in ("closed", "happy"):
+            p.arc(ex, ey + (0.06 * hr if eyes == "happy" else -0.05 * hr), 0.25 * hr, 0.18 * hr,
+                  200 if eyes == "happy" else 20, 340 if eyes == "happy" else 160, 6)
+        else:
+            p.blob(ex, ey, 0.34 * hr, 0.36 * hr, WHITE, 6)
+            p.blob(ex + 0.04 * hr, ey + 0.06 * hr, 0.18 * hr, 0.2 * hr, INK, 0)
+            p.blob(ex - 0.06 * hr, ey - 0.05 * hr, 0.07 * hr, 0.07 * hr, WHITE, 0)
+        face(p, hx, hy + 0.1 * hr, hr, tilt, "none", mouth, extras)
+    _limbs(p, arms, col, 12)
+
+
+CHARACTERS.update({"human": human, "stick": stick, "ghost": ghost, "dino": dino,
+                   "seal": seal, "octopus": octopus, "monster": monster})
+
+
 # ---------------- 소품 / 효과 (리빌형에서 추가) ----------------
 PUFF = (214, 226, 140)
 
