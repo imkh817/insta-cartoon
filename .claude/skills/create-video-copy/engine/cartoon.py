@@ -1069,19 +1069,31 @@ RV_TITLE_Y = (300, 430)
 def _render_panel(ep, idx, t, alpha=1.0):
     fn, tag_text, bg = ep.PANELS[idx]
     img = bg(RV_W, RV_H).copy() if callable(bg) else Image.new("RGB", (RV_W * SS, RV_H * SS), bg or WHITE)
-    p = Pen(img, t % 3)
-    fn(p, t)
-    if tag_text:
-        tag(p, -4, -4, tag_text)
-    p.shape([(4, 4), (RV_W - 4, 3), (RV_W - 3, RV_H - 4), (3, RV_H - 3)], None, 10)
+
+    def draw(p):
+        fn(p, t)
+        if tag_text:
+            tag(p, -4, -4, tag_text)
+        p.shape([(4, 4), (RV_W - 4, 3), (RV_W - 3, RV_H - 4), (3, RV_H - 3)], None, 10)
+
+    if getattr(ep, "STYLE", "marker") == "hand":
+        import styles
+        img = styles.render_hand(draw, RV_W, RV_H, t % 3, bg=img)
+    else:
+        draw(Pen(img, t % 3))
     if alpha < 1.0:
         img = Image.blend(Image.new("RGB", img.size, WHITE), img, alpha)
     return img
 
 
 def render_frame_reveal(ep, t):
-    img = Image.new("RGB", (W * SS, H * SS), WHITE)
-    p = Pen(img, t % 3)
+    hand = getattr(ep, "STYLE", "marker") == "hand"
+    img = Image.new("RGB", (W * SS, H * SS), (253, 251, 246) if hand else WHITE)
+    if hand:
+        import styles
+        p = styles.HandPen(img, t % 3)
+    else:
+        p = Pen(img, t % 3)
     y0, y1 = RV_TITLE_Y
     p.shape([(RV_X - 10, y0), (RV_X + RV_W + 10, y0 - 3), (RV_X + RV_W + 12, y1), (RV_X - 12, y1 + 3)], YELLOW, 8)
     p.text(540, (y0 + y1) / 2 + 2, ep.TITLE, 52)

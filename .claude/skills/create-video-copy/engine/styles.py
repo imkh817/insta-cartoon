@@ -6,6 +6,7 @@
 """
 import math
 import os
+import random
 
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter
 
@@ -161,3 +162,119 @@ def render_styled(style, draw, w, h, boil=0):
 
 
 STYLES = ["marker", "line", "crayon", "sticker", "watercolor", "retro"]
+
+
+# ---------------- 손그림 화풍 ----------------
+HAND_INK = (54, 44, 46)
+
+
+class HandPen(StylePen):
+    """실제 손그림처럼: 획이 끊기고 겹침, 양 끝이 가늘어짐(필압), 낮은 주파수의 손떨림."""
+
+    def __init__(self, img, boil, **kw):
+        kw.setdefault("line_color", HAND_INK)
+        super().__init__(img, boil, **kw)
+        self.amp = 0          # 전역 변위장 끔 (획 단위 노이즈로 대체)
+        self._n = 0
+
+    def _rng(self, pts):
+        self._n += 1
+        x0, y0 = pts[0]
+        return random.Random(int(x0 * 7 + y0 * 13) * 31 + len(pts) * 17 + self._n * 101 + self.boil * 7919)
+
+    def stroke(self, pts, w=7, closed=False, color=INK):
+        if not self.line_on or len(pts) < 2:
+            return
+        col = self.line_color if color == INK else color
+        rnd = self._rng(pts)
+        P = [(x * self.k + self.ox, y * self.k + self.oy) for x, y in pts]
+        if closed:
+            P = P + [P[0]]
+        # 2px 간격으로 재샘플
+        R = [P[0]]
+        for (x0, y0), (x1, y1) in zip(P, P[1:]):
+            n = max(1, int(math.hypot(x1 - x0, y1 - y0) / 2))
+            R += [(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n) for i in range(1, n + 1)]
+        L = len(R)
+        if L < 3:
+            return
+        ph1, ph2 = rnd.uniform(0, 6.28), rnd.uniform(0, 6.28)
+        f1, f2 = rnd.uniform(0.012, 0.025), rnd.uniform(0.05, 0.09)
+        amp = min(2.2, 0.6 + w * 0.18)
+
+        def wob(i):
+            (xa, ya), (xb, yb) = R[max(0, i - 1)], R[min(L - 1, i + 1)]
+            nx, ny = -(yb - ya), (xb - xa)
+            nl = math.hypot(nx, ny) or 1
+            s = i * 2
+            o = amp * (math.sin(s * f1 + ph1) + 0.45 * math.sin(s * f2 + ph2))
+            return R[i][0] + nx / nl * o, R[i][1] + ny / nl * o
+
+        Q = [wob(i) for i in range(L)]
+        if closed:
+            # 시작점을 랜덤으로 돌리고, 두 획으로 나눠 그리며 끝을 살짝 겹치거나 비움
+            st = rnd.randrange(L)
+            Q = Q[st:] + Q[1:st + 1]
+            cut = int(L * rnd.uniform(0.45, 0.6))
+            over = rnd.randint(-2, 5)
+            segs = [Q[:cut + 3], Q[cut - 2:] + Q[1:max(2, over)]]
+        else:
+            segs = [Q]
+        base = w * self.line_scale * SS / 2
+        for seg in segs:
+            n = len(seg)
+            if n < 2:
+                continue
+            press = rnd.uniform(0.85, 1.05)
+            for i, (x, y) in enumerate(seg):
+                f = i / (n - 1)
+                taper = min(1.0, f / 0.12, (1 - f) / 0.12) if n > 12 else 1.0
+                r = base * press * (0.45 + 0.55 * max(0.0, taper)) * (0.9 + 0.1 * math.sin(i * 0.31 + ph1))
+                r = max(r, 0.6)
+                X, Y = x * SS, y * SS
+                self.d.ellipse([X - r, Y - r, X + r, Y + r], fill=col)
+
+    def shape(self, pts, fill=None, w=7, color=INK):
+        if fill is not None and (self.fill_filter is None or self.fill_filter(fill)):
+            f = self.fill_map(fill) if self.fill_map else fill
+            self.d.polygon([((x * self.k + self.ox) * SS, (y * self.k + self.oy) * SS) for x, y in pts], fill=f)
+        if w:
+            self.stroke(pts, w, True, color)
+
+
+_streak = {}
+
+
+def marker_texture(size, seed=11):
+    """마커 결: 대각선으로 늘린 노이즈."""
+    key = (size, seed)
+    if key not in _streak:
+        rnd = random.Random(seed)
+        w, h = max(8, size[0] // 24), max(8, size[1] // 3)
+        n = Image.frombytes("L", (w, h), bytes(rnd.getrandbits(8) for _ in range(w * h)))
+        n = n.resize((size[0] + size[1] // 2, size[1]), Image.BICUBIC).transform(
+            (size[0], size[1]), Image.AFFINE, (1, 0.45, 0, 0, 1, 0), Image.BICUBIC)
+        n = n.point(lambda v: 236 + (255 - 236) * v // 255)
+        _streak[key] = Image.merge("RGB", (n, n, n))
+    return _streak[key]
+
+
+SENTINEL = (1, 254, 3)
+
+
+def render_hand(draw, w, h, boil=0, bg=None):
+    """손그림 합성: 채색(어긋남+마커결) 위에 손그림 선, 종이 질감."""
+    base = bg.copy() if bg is not None else Image.new("RGB", (w * SS, h * SS), (253, 251, 246))
+    fills = Image.new("RGB", base.size, SENTINEL)
+    draw(HandPen(fills, boil, line_on=False, text_on=False))
+    mask = ImageChops.difference(fills, Image.new("RGB", base.size, SENTINEL)).convert("L").point(lambda v: 255 if v > 4 else 0)
+    rnd = random.Random(boil * 3 + 1)
+    dx, dy = int((2 + rnd.random()) * SS), int((1.5 + rnd.random()) * SS)
+    fills = ImageChops.offset(fills, dx, dy)
+    mask = ImageChops.offset(mask, dx, dy)
+    fills = ImageChops.multiply(fills, marker_texture(base.size, 11 + boil))
+    base.paste(fills, (0, 0), mask)
+    lines = Image.new("RGB", base.size, WHITE)
+    draw(HandPen(lines, boil, fill_map=lambda c: c if c == INK else WHITE, line_scale=0.9))
+    out = ImageChops.multiply(base, lines)
+    return ImageChops.multiply(out, grain(out.size, 242, 0.9))
