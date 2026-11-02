@@ -428,6 +428,159 @@ def render_frame_slide(ep, t):
     return full.resize((W, H), Image.LANCZOS)
 
 
+# ---------------- 추가 캐릭터 (캐릭터 시안) ----------------
+CAT = (255, 186, 104)
+CAT_D = (222, 128, 48)
+DOG = (252, 247, 236)
+DOG_EAR = (172, 112, 66)
+HAM = (246, 192, 122)
+HAM_W = (255, 251, 242)
+PENG = (52, 62, 98)
+BEAK = (255, 168, 44)
+MOCHI = (255, 230, 239)
+POTATO = (214, 168, 104)
+POTATO_D = (166, 120, 66)
+LEAF = (112, 190, 88)
+INNER = (255, 160, 185)
+
+
+def _H(hx, hy, hr, tilt):
+    return lambda dx, dy: rot(hx, hy, dx * hr, dy * hr, tilt)
+
+
+def bow(p, cx, cy, s, tilt=0, fill=RIBBON):
+    """핫핑크 리본 (s = 리본 반폭)."""
+    for sgn in (-1, 1):
+        pts = [rot(cx, cy, 0, 0, tilt), rot(cx, cy, sgn * 0.9 * s, -0.45 * s, tilt),
+               rot(cx, cy, sgn * 1.0 * s, 0.04 * s, tilt), rot(cx, cy, sgn * 0.84 * s, 0.45 * s, tilt)]
+        p.shape(pts, fill, 6)
+    p.blob(cx, cy, 0.24 * s, 0.22 * s, fill, 6)
+
+
+def _limbs(p, arms, fill, r=17):
+    for (sx, sy), (ax, ay) in arms:
+        p.capsule((sx, sy), (ax, ay), r, r + 3, fill)
+
+
+def cat(p, hx, hy, hr, tilt=0, eyes="dot", mouth="w", extras=(), body=None, arms=(),
+        ribbon=True, face_fill=CAT, tail=True):
+    """여친 후보: 치즈냥 (줄무늬 이마, 세모 귀, 수염, 꼬리)."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        if tail:
+            p.capsule((bx + brx * 0.7, by + bry * 0.4), (bx + brx * 1.45, by - bry * 0.7), 12, 14, CAT)
+            p.blob(bx + brx * 1.45, by - bry * 0.7, 12, 12, CAT_D, 0)
+        p.blob(bx, by, brx, bry, CAT, 7)
+        p.blob(bx, by + bry * 0.15, brx * 0.55, bry * 0.6, (255, 226, 186), 0)
+    for sgn in (-1, 1):
+        p.shape([H(sgn * 0.82, -0.45), H(sgn * 0.22, -0.88), H(sgn * 0.78, -1.32)], CAT, 7)
+        p.shape([H(sgn * 0.68, -0.6), H(sgn * 0.38, -0.8), H(sgn * 0.7, -1.08)], INNER, 0)
+    p.blob(hx, hy, 1.08 * hr, 0.95 * hr, face_fill, 8, ang=tilt, k=0.7)
+    for dx in (-0.16, 0, 0.16):
+        p.line([H(dx, -0.92), H(dx * 0.8, -0.66)], 6, CAT_D)
+    if ribbon:
+        bow(p, *H(0.62, -1.0), 0.32 * hr, tilt + 20)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+    for sgn in (-1, 1):
+        for dy in (-0.06, 0.1):
+            p.line([H(sgn * 0.78, 0.3 + dy * 0.3), H(sgn * 1.28, 0.25 + dy)], 3)
+    _limbs(p, arms, CAT)
+
+
+def dog(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), face_fill=DOG):
+    """남친 후보: 백구 (처진 갈색 귀, 눈 얼룩, 빨간 목줄)."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        p.blob(bx, by, brx, bry, DOG, 7)
+        p.blob(bx + brx * 0.35, by + bry * 0.1, brx * 0.3, bry * 0.28, DOG_EAR, 0)
+    p.blob(hx, hy, 1.08 * hr, 0.95 * hr, face_fill, 8, ang=tilt, k=1.1)
+    p.blob(*H(0.38, -0.08), 0.27 * hr, 0.24 * hr, DOG_EAR, 0, ang=tilt)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras, muzzle=True)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.98, -0.12), 0.27 * hr, 0.58 * hr, DOG_EAR, 7, ang=tilt + sgn * 18, k=sgn)
+    if body:
+        p.capsule(H(-0.5, 0.9), H(0.5, 0.9), 8, 8, (230, 60, 70), 5)
+        p.blob(*H(0, 1.02), 0.1 * hr, 0.1 * hr, SPARK, 4)
+    _limbs(p, arms, DOG)
+
+
+def hamster(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(),
+            ribbon=True, cheeks=1.0, face_fill=HAM):
+    """여친 후보: 햄찌 (빵빵한 볼주머니, 작은 귀). cheeks로 볼 크기 조절 (먹방 개그)."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        p.blob(bx, by, brx, bry, HAM, 7)
+        p.blob(bx, by + bry * 0.15, brx * 0.65, bry * 0.65, HAM_W, 0)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.62, -0.84), 0.22 * hr, 0.2 * hr, HAM, 7)
+        p.blob(*H(sgn * 0.62, -0.84), 0.11 * hr, 0.1 * hr, INNER, 0)
+    p.blob(hx, hy, 1.15 * hr, 0.98 * hr, face_fill, 8, ang=tilt, k=0.4)
+    p.blob(*H(0, 0.32), 0.8 * hr, 0.5 * hr, HAM_W, 0, ang=tilt)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.74, 0.34), 0.34 * hr * cheeks, 0.28 * hr * cheeks, HAM_W, 6, ang=tilt)
+    if ribbon:
+        bow(p, *H(0, -0.92), 0.36 * hr, tilt)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+    _limbs(p, arms, HAM, 14)
+
+
+def penguin(p, hx, hy, hr, tilt=0, eyes="dot", mouth="flat", extras=(), body=None, arms=()):
+    """남친 후보: 펭구 (남색, 흰 얼굴, 주황 부리, 삐친 머리털)."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        p.blob(bx, by, brx, bry, PENG, 7)
+        p.blob(bx, by + bry * 0.12, brx * 0.68, bry * 0.75, WHITE, 0)
+        for sgn in (-1, 1):
+            p.blob(bx + sgn * brx * 0.45, by + bry * 0.95, brx * 0.28, bry * 0.14, BEAK, 5)
+    for k in (-1, 0, 1):
+        p.arc(*H(0.08 * k, -1.0), 0.12 * hr, 0.16 * hr, 180 + 30 * k, 300 + 30 * k, 5)
+    p.blob(hx, hy, 1.08 * hr, 0.98 * hr, PENG, 8, ang=tilt, k=2.5)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.36, 0.05), 0.42 * hr, 0.48 * hr, WHITE, 0, ang=tilt)
+    p.blob(*H(0, 0.38), 0.6 * hr, 0.42 * hr, WHITE, 0, ang=tilt)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+    p.shape([H(-0.18, 0.3), H(0, 0.2), H(0.18, 0.3), H(0, 0.44)], BEAK, 4)
+    _limbs(p, arms, PENG, 13)
+
+
+def mochi(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), ribbon=True):
+    """여친 후보: 모찌 (말랑한 찹쌀떡, 몸 전체가 얼굴). body는 무시, 짧은 발만."""
+    H = _H(hx, hy, hr, tilt)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.48, 0.86), 0.2 * hr, 0.14 * hr, MOCHI, 6)
+    p.blob(hx, hy, 1.28 * hr, 0.86 * hr, MOCHI, 8, ang=tilt, k=0.2, irr=0.015)
+    for dx, dy in ((-0.9, -0.3), (0.85, -0.42), (-0.55, -0.62), (0.4, -0.7), (1.0, 0.15)):
+        p.blob(*H(dx, dy), 0.04 * hr, 0.04 * hr, WHITE, 0)
+    if ribbon:
+        bow(p, *H(0.45, -0.78), 0.34 * hr, tilt + 15)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+    _limbs(p, arms, MOCHI, 12)
+
+
+def potato(p, hx, hy, hr, tilt=0, eyes="dot", mouth="flat", extras=(), body=None, arms=(), sprout=True):
+    """남친 후보: 감자 (울퉁불퉁, 점박이, 머리 위 새싹). 몸 전체가 얼굴."""
+    H = _H(hx, hy, hr, tilt)
+    for sgn in (-1, 1):
+        p.capsule(H(sgn * 0.4, 0.8), H(sgn * 0.5, 1.2), 0.13 * hr, 0.15 * hr, POTATO, 6)
+    if sprout:
+        p.line([H(0.05, -1.0), H(0.1, -1.32)], 6, (90, 150, 70))
+        p.blob(*H(-0.12, -1.38), 0.2 * hr, 0.1 * hr, LEAF, 5, ang=tilt - 25)
+        p.blob(*H(0.32, -1.36), 0.2 * hr, 0.1 * hr, LEAF, 5, ang=tilt + 25)
+    p.blob(hx, hy, 1.02 * hr, 1.12 * hr, POTATO, 8, ang=tilt, irr=0.06, k=3.3)
+    for dx, dy, r in ((-0.6, -0.55, 0.07), (0.55, -0.7, 0.05), (0.75, 0.5, 0.06), (-0.7, 0.65, 0.05), (0.1, -0.85, 0.04)):
+        p.blob(*H(dx, dy), r * hr, r * hr * 0.8, POTATO_D, 0)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+    _limbs(p, arms, POTATO, 13)
+
+
+CHARACTERS = {"bunny": bunny, "bear": bear, "cat": cat, "dog": dog, "hamster": hamster,
+              "penguin": penguin, "mochi": mochi, "potato": potato}
+
+
 # ---------------- 소품 / 효과 (리빌형에서 추가) ----------------
 PUFF = (214, 226, 140)
 
