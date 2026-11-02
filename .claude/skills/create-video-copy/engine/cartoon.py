@@ -1272,9 +1272,13 @@ def _render_panel(ep, idx, t, alpha=1.0):
             tag(p, -4, -4, tag_text)
         p.shape([(4, 4), (RV_W - 4, 3), (RV_W - 3, RV_H - 4), (3, RV_H - 3)], None, 10)
 
-    if getattr(ep, "STYLE", "marker") == "hand":
+    style = getattr(ep, "STYLE", "marker")
+    if style == "hand":
         import styles
         img = styles.render_hand(draw, RV_W, RV_H, t % 3, bg=img)
+    elif style != "marker":
+        import styles
+        img = styles.render_variant(style, draw, RV_W, RV_H, t % 3, bg=img)
     else:
         draw(Pen(img, t % 3))
     if alpha < 1.0:
@@ -1283,11 +1287,11 @@ def _render_panel(ep, idx, t, alpha=1.0):
 
 
 def render_frame_reveal(ep, t):
-    hand = getattr(ep, "STYLE", "marker") == "hand"
-    img = Image.new("RGB", (W * SS, H * SS), (253, 251, 246) if hand else WHITE)
-    if hand:
+    style = getattr(ep, "STYLE", "marker")
+    img = Image.new("RGB", (W * SS, H * SS), (253, 251, 246) if style == "hand" else WHITE)
+    if style != "marker":
         import styles
-        p = styles.HandPen(img, t % 3)
+        p = styles.make_pen(style, img, t % 3)
     else:
         p = Pen(img, t % 3)
     y0, y1 = RV_TITLE_Y

@@ -327,3 +327,19 @@ def render_variant(style, draw, w, h, boil=0, bg=None):
     if style == "hand":
         return render_hand(draw, w, h, boil, bg=base)
     raise ValueError(style)
+
+
+VARIANT_STYLES = ("thin", "soft", "colorline")
+
+
+def make_pen(style, img, boil):
+    """제목 등 패널 밖 요소를 같은 화풍으로 그릴 펜."""
+    if style == "thin":
+        return StylePen(img, boil, line_scale=0.58, var=0.8)
+    if style == "soft":
+        return StylePen(img, boil, fill_map=lambda c: c if c == INK else _soften(c), line_color=(66, 50, 54), line_scale=0.85)
+    if style == "colorline":
+        return ColorLinePen(img, boil, line_scale=0.85)
+    if style == "hand":
+        return HandPen(img, boil)
+    return C.Pen(img, boil)
