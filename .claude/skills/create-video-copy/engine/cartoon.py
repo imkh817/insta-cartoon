@@ -53,12 +53,14 @@ class Pen:
         self.ph = [boil * 2.3 + k * 1.7 for k in range(4)]
         self.amp = 2.4
         self.ox = self.oy = 0
+        self.k = 1.0      # 컷 좌표 확대 배율 (슬라이드형에서 사용)
+        self.kw = 1.0     # 선 굵기 배율
         self.seed = 0
 
     # 손떨림 변위장 (boil마다 위상이 바뀜)
     def j(self, x, y):
-        x += self.ox
-        y += self.oy
+        x = x * self.k + self.ox
+        y = y * self.k + self.oy
         a, p = self.amp, self.ph
         dx = a * (math.sin(0.05 * y + 0.03 * x + p[0]) * 0.7 + math.sin(0.09 * y - 0.06 * x + p[1]) * 0.3)
         dy = a * (math.sin(0.045 * x - 0.03 * y + p[2]) * 0.7 + math.sin(0.08 * x + 0.07 * y + p[3]) * 0.3)
@@ -75,7 +77,7 @@ class Pen:
         self.seed += 1.7
         sd = self.seed + self.boil * 0.9
         s = 0.0
-        base = w * SS / 2
+        base = w * self.kw * SS / 2
         for (x0, y0), (x1, y1) in segs:
             l = math.hypot(x1 - x0, y1 - y0)
             n = max(1, int(l / step))
@@ -133,12 +135,12 @@ class Pen:
         self.stroke(out, w, False, color)
 
     def text(self, x, y, s, size, fill=INK, anchor="mm", wobble=False):
-        X, Y = self.j(x, y) if wobble else ((x + self.ox) * SS, (y + self.oy) * SS)
-        self.d.text((X, Y), s, font=font(size), fill=fill, anchor=anchor)
+        X, Y = self.j(x, y) if wobble else ((x * self.k + self.ox) * SS, (y * self.k + self.oy) * SS)
+        self.d.text((X, Y), s, font=font(size * self.k), fill=fill, anchor=anchor)
 
     def text_w(self, s, size):
-        b = font(size).getbbox(s)
-        return (b[2] - b[0]) / SS
+        b = font(size * self.k).getbbox(s)
+        return (b[2] - b[0]) / SS / self.k
 
     def heart(self, cx, cy, s, fill=RIBBON, w=5):
         pts = []
@@ -364,11 +366,71 @@ def render_frame(ep, t):
     return img.resize((W, H), Image.LANCZOS)
 
 
+# ---------------- 1x1 슬라이드 레이아웃 ----------------
+SLIDE_K = 2.0              # 컷 확대 배율 (470x450 -> 940x900)
+SLIDE_X0, SLIDE_Y0 = 70, 640
+FADE = 3                   # 페이드 프레임 수 (나갈 때/들어올 때 각각)
+
+
+def _slide_base(p, ep, idx, n_slides):
+    p.shape([(90, 250), (990, 246), (994, 420), (86, 424)], YELLOW, 7)
+    lines = ep.TITLE if isinstance(ep.TITLE, (list, tuple)) else [ep.TITLE]
+    ys = [336] if len(lines) == 1 else [302, 370]
+    for y, s in zip(ys, lines):
+        p.text(540, y, s, 54)
+    if not getattr(ep, "DOTS", False):   # 진행 점은 기본으로 표시하지 않음 (사용자 피드백)
+        return
+    gap = 44
+    x = 540 - gap * (n_slides - 1) / 2
+    for i in range(n_slides):
+        on = i == idx
+        p.blob(x + i * gap, 1620, 11 if on else 8, 11 if on else 8, RIBBON if on else (225, 220, 225), 4 if on else 0)
+
+
+def render_frame_slide(ep, t):
+    slides = ep.SLIDES
+    per = ep.FRAMES_PER_SLIDE
+    idx, local = divmod(t, per)
+    idx %= len(slides)
+    fn, tag, cap = slides[idx]
+    tag_colors = getattr(ep, "TAG_COLORS", DEFAULT_TAG_COLORS)
+
+    def draw(with_cut):
+        img = Image.new("RGB", (W * SS, H * SS), WHITE)
+        p = Pen(img, t % 3)
+        _slide_base(p, ep, idx, len(slides))
+        if with_cut:
+            # 캡션 (컷 위)
+            tag_s = tag + " " if tag else ""
+            tw = p.text_w(tag_s, 46) if tag_s else 0
+            cw = p.text_w(cap, 46)
+            cx = 540 - (tw + cw) / 2
+            if tag_s:
+                p.text(cx, 540, tag_s, 46, tag_colors.get(tag, INK), anchor="lm")
+            p.text(cx + tw, 540, cap, 46, anchor="lm")
+            p.ox, p.oy, p.k, p.kw = SLIDE_X0, SLIDE_Y0, SLIDE_K, 1.45
+            fn(p, t)
+            p.ox = p.oy = 0
+            p.k = p.kw = 1.0
+        return img
+
+    full = draw(True)
+    a = 1.0
+    if local < FADE:
+        a = (local + 1) / (FADE + 1)
+    elif local >= per - FADE:
+        a = (per - local) / (FADE + 1)
+    if a < 1.0:
+        full = Image.blend(draw(False), full, a)
+    return full.resize((W, H), Image.LANCZOS)
+
+
 def render_episode(ep, out_dir, only=None):
     fdir = os.path.join(out_dir, "frames")
     os.makedirs(fdir, exist_ok=True)
     n = getattr(ep, "N", N)
     frames = [only] if only is not None else list(range(n))
     for t in frames:
-        render_frame(ep, t).save(os.path.join(fdir, f"f_{t:03d}.png"))
+        fn = render_frame_slide if getattr(ep, "LAYOUT", "grid") == "slide" else render_frame
+        fn(ep, t).save(os.path.join(fdir, f"f_{t:03d}.png"))
     return len(frames)

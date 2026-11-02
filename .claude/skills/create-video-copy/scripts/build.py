@@ -48,7 +48,7 @@ ul{{margin:0;padding-left:1.2em;display:grid;gap:6px}}
 h2{{font-size:1.05rem;margin:0 0 8px;border-bottom:3px solid var(--accent);display:inline-block}}
 </style>
 <main>
-<header><h1>{title}</h1><p class="meta">{version} · 2×2 4컷 · 1080×1920 · {secs:.1f}초 루프</p></header>
+<header><h1>{title}</h1><p class="meta">{version} · {layout} · 1080×1920 · {secs:.1f}초 루프</p></header>
 <video src="data:video/mp4;base64,{b64}" autoplay muted loop playsinline controls></video>
 <section><h2>컷 구성</h2><ul>{items}</ul></section>
 </main>
@@ -59,14 +59,15 @@ def write_preview(ep, out_dir, name, mp4):
     import base64
     import html
     title = " ".join(ep.TITLE) if isinstance(ep.TITLE, (list, tuple)) else ep.TITLE
-    items = "".join(f"<li>{html.escape((tag + ' ') if tag else '')}{html.escape(cap)}</li>" for _, tag, cap in ep.CELLS)
+    items = "".join(f"<li>{html.escape((tag + ' ') if tag else '')}{html.escape(cap)}</li>" for _, tag, cap in getattr(ep, "SLIDES", None) or ep.CELLS)
     n = getattr(ep, "N", cartoon.N)
     fps = getattr(ep, "FPS", cartoon.FPS)
     b64 = base64.b64encode(open(mp4, "rb").read()).decode()
     out = os.path.join(out_dir, "preview.html")
     with open(out, "w") as f:
         f.write(PREVIEW.format(title=html.escape(title), version=html.escape(getattr(ep, "VERSION", "시안")),
-                               secs=n / fps, b64=b64, items=items))
+                               secs=n / fps, b64=b64, items=items,
+                               layout="1x1 슬라이드" if getattr(ep, "LAYOUT", "grid") == "slide" else "2×2 4컷"))
     print(out)
 
 
