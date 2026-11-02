@@ -581,6 +581,206 @@ CHARACTERS = {"bunny": bunny, "bear": bear, "cat": cat, "dog": dog, "hamster": h
               "penguin": penguin, "mochi": mochi, "potato": potato}
 
 
+# ---------------- 추가 캐릭터 2차 (인스타 감성 시안) ----------------
+RICE = (255, 255, 252)
+GIM = (38, 66, 48)
+PEACH = (255, 190, 170)
+PEACH_D = (255, 140, 130)
+SWEETPOTATO = (176, 72, 112)
+BREAD = (255, 234, 184)
+CRUST = (204, 142, 72)
+BUTTER = (255, 226, 92)
+BUTTER_T = (255, 240, 150)
+DUMPLING = (252, 246, 228)
+BUN = (255, 251, 242)
+CLOUD = (232, 243, 255)
+BOLT = (255, 214, 40)
+
+
+def _eye_whites(p, H, hr, r=0.17):
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.36, 0.02), r * hr, r * 1.15 * hr, WHITE, 0)
+
+
+def rice(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), ribbon=True):
+    """밥풀: 길쭉한 흰 쌀알 + 반짝 하이라이트."""
+    H = _H(hx, hy, hr, tilt)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.35, 1.1), 0.16 * hr, 0.1 * hr, RICE, 5)
+    p.blob(hx, hy, 0.88 * hr, 1.14 * hr, RICE, 8, ang=tilt, k=0.9)
+    p.arc(*H(-0.42, -0.35), 0.18 * hr, 0.4 * hr, 200, 250, 5, ang=tilt, color=(205, 220, 235))
+    if ribbon:
+        bow(p, *H(0.35, -1.02), 0.3 * hr, tilt + 15)
+    face(p, hx, hy + 0.08 * hr, hr * 0.92, tilt, eyes, mouth, extras)
+    _limbs(p, arms, RICE, 11)
+
+
+def gim(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=()):
+    """김: 바삭한 네모 김 (참깨 점). 어두운 얼굴이라 눈 흰자를 깔아준다."""
+    H = _H(hx, hy, hr, tilt)
+    for sgn in (-1, 1):
+        p.capsule(H(sgn * 0.45, 0.85), H(sgn * 0.5, 1.2), 0.1 * hr, 0.12 * hr, GIM, 5)
+    pts = [H(-0.95, -0.95), H(0.0, -1.02), H(0.95, -0.95), H(1.0, 0.0), H(0.95, 0.95), H(0, 1.0), H(-0.95, 0.95), H(-1.02, 0)]
+    p.shape(pts, GIM, 8)
+    for dx, dy in ((-0.6, -0.65), (0.5, -0.72), (0.72, 0.62), (-0.7, 0.68)):
+        p.blob(*H(dx, dy), 0.05 * hr, 0.03 * hr, (250, 240, 200), 0, ang=tilt + 30)
+    _eye_whites(p, H, hr)
+    p.blob(*H(0, 0.5), 0.17 * hr, 0.12 * hr, WHITE, 0)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+    _limbs(p, arms, GIM, 11)
+
+
+def peach(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), ribbon=False):
+    """복숭아: 엉덩이 골 + 잎사귀. 몸개그용."""
+    H = _H(hx, hy, hr, tilt)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.42, 0.98), 0.16 * hr, 0.1 * hr, PEACH, 5)
+    p.blob(*H(0.32, -1.02), 0.32 * hr, 0.14 * hr, LEAF, 6, ang=tilt - 25)
+    p.blob(hx, hy, 1.08 * hr, 1.0 * hr, PEACH, 8, ang=tilt, k=1.9)
+    p.blob(*H(0.2, 0.25), 0.7 * hr, 0.6 * hr, (255, 170, 160), 0, ang=tilt)
+    p.arc(*H(0.02, -0.98), 0.3 * hr, 0.55 * hr, 60, 110, 6, ang=tilt)
+    if ribbon:
+        bow(p, *H(-0.4, -0.92), 0.28 * hr, tilt - 15)
+    face(p, hx, hy + 0.05 * hr, hr, tilt, eyes, mouth, extras)
+    _limbs(p, arms, PEACH, 11)
+
+
+def sweetpotato(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=()):
+    """고구마: 길쭉 비스듬, 꼬리 뿌리, 자주색."""
+    H = _H(hx, hy, hr, tilt)
+    p.line([H(0.25, 1.05), H(0.45, 1.35), H(0.4, 1.5)], 5, (120, 80, 60))
+    for sgn in (-1, 1):
+        p.capsule(H(sgn * 0.42, 0.85), H(sgn * 0.5, 1.15), 0.11 * hr, 0.13 * hr, SWEETPOTATO, 5)
+    p.blob(hx, hy, 0.86 * hr, 1.16 * hr, SWEETPOTATO, 8, ang=tilt + 12, irr=0.05, k=4.1)
+    for dx, dy in ((-0.45, -0.6), (0.4, -0.85), (0.55, 0.55)):
+        p.arc(*H(dx, dy), 0.1 * hr, 0.05 * hr, 0, 180, 4, ang=tilt, color=(120, 40, 80))
+    _eye_whites(p, H, hr, 0.15)
+    face(p, hx, hy, hr * 0.92, tilt, eyes, mouth, extras)
+    _limbs(p, arms, SWEETPOTATO, 11)
+
+
+def toast(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), ribbon=True):
+    """식빵: 위가 볼록한 빵 단면 + 갈색 테두리(크러스트)."""
+    H = _H(hx, hy, hr, tilt)
+
+    def slice_pts(sc):
+        pts = []
+        for i in range(19):          # 위쪽 두 혹
+            a = math.pi + math.pi * i / 18
+            pts.append(H(-0.5 * sc + 0.48 * sc * math.cos(a), -0.45 * sc + 0.5 * sc * math.sin(a)))
+        for i in range(19):
+            a = math.pi + math.pi * i / 18
+            pts.append(H(0.5 * sc + 0.48 * sc * math.cos(a), -0.45 * sc + 0.5 * sc * math.sin(a)))
+        pts += [H(0.92 * sc, 0.95 * sc), H(-0.92 * sc, 0.95 * sc)]
+        return pts
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.42, 1.05), 0.15 * hr, 0.09 * hr, BREAD, 5)
+    p.shape(slice_pts(1.0), CRUST, 8)
+    p.shape(slice_pts(0.82), BREAD, 0)
+    if ribbon:
+        bow(p, *H(-0.5, -0.95), 0.3 * hr, tilt - 10)
+    face(p, hx, hy + 0.12 * hr, hr * 0.95, tilt, eyes, mouth, extras)
+    _limbs(p, arms, BREAD, 11)
+
+
+def butter(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), melt=0.0):
+    """버터: 노란 큐브. melt(0~1)만큼 아래로 녹아 흐른다 (설렘 표현)."""
+    H = _H(hx, hy, hr, tilt)
+    if melt > 0:
+        p.blob(*H(0, 0.95 + 0.1 * melt), (1.0 + 0.4 * melt) * hr, (0.16 + 0.12 * melt) * hr, BUTTER_T, 6)
+        for dx in (-0.55, 0.1, 0.6):
+            p.capsule(H(dx, 0.7), H(dx, 0.85 + 0.35 * melt), 0.09 * hr, 0.11 * hr, BUTTER, 5)
+    p.shape([H(-0.85, -0.55), H(-0.45, -0.95), H(0.95, -0.95), H(0.55, -0.55)], BUTTER_T, 7)
+    p.shape([H(0.55, -0.55), H(0.95, -0.95), H(0.95, 0.55), H(0.55, 0.92)], (240, 200, 60), 7)
+    p.shape([H(-0.85, -0.55), H(0.55, -0.55), H(0.55, 0.92), H(-0.85, 0.92)], BUTTER, 7)
+    face(p, hx - 0.15 * hr, hy + 0.15 * hr, hr * 0.85, tilt, eyes, mouth, extras)
+    _limbs(p, arms, BUTTER, 11)
+
+
+def wonky(p, hx, hy, hr, tilt=0, eyes="dot", mouth="w", extras=(), body=None, arms=(), kind="cat"):
+    """하찮은 B급: 흰 몸, 삐뚤빼뚤 두꺼운 선, 작은 점눈. kind=cat|dog."""
+    H = _H(hx, hy, hr, tilt)
+    if body:
+        bx, by, brx, bry = body
+        p.blob(bx, by, brx * 0.9, bry, WHITE, 9, irr=0.08, k=5.5)
+    if kind == "cat":
+        for sgn in (-1, 1):
+            p.shape([H(sgn * 0.75, -0.45), H(sgn * 0.3, -0.8), H(sgn * 0.68, -1.15)], WHITE, 9)
+    p.blob(hx, hy, 1.05 * hr, 0.92 * hr, WHITE, 9, ang=tilt, irr=0.09, k=2.7 if kind == "cat" else 6.1)
+    if kind == "dog":
+        for sgn in (-1, 1):
+            p.blob(*H(sgn * 0.9, 0.05), 0.17 * hr, 0.36 * hr, WHITE, 9, ang=tilt + sgn * 20, irr=0.08, k=sgn)
+    small = {"dot": "dot"}.get(eyes, eyes)
+    face(p, hx, hy + 0.06 * hr, hr * 0.8, tilt, small, mouth, extras)
+    _limbs(p, arms, WHITE, 13)
+
+
+def dumpling(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), ribbon=True):
+    """만두: 반달 모양 + 윗선 주름."""
+    H = _H(hx, hy, hr, tilt)
+    pts = []
+    for a in range(0, 360, 10):
+        sn = math.sin(math.radians(a))
+        dy = 0.35 - 1.05 * sn if a <= 180 else 0.35 + 0.38 * abs(sn)
+        pts.append(H(1.25 * math.cos(math.radians(a)), dy))
+    p.shape(pts, DUMPLING, 8)
+    for k in range(-2, 3):
+        p.arc(*H(0.32 * k, -0.42 + 0.1 * abs(k)), 0.13 * hr, 0.2 * hr, 200, 340, 5, ang=tilt + 8 * k)
+    if ribbon:
+        bow(p, *H(0.75, -0.5), 0.28 * hr, tilt + 25)
+    face(p, hx, hy + 0.22 * hr, hr * 0.85, tilt, eyes, mouth, extras)
+    _limbs(p, arms, DUMPLING, 11)
+
+
+def steamed_bun(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=()):
+    """찐빵: 동글 납작 + 정수리 팥 점."""
+    H = _H(hx, hy, hr, tilt)
+    for sgn in (-1, 1):
+        p.blob(*H(sgn * 0.45, 0.9), 0.16 * hr, 0.1 * hr, BUN, 5)
+    p.blob(hx, hy, 1.15 * hr, 0.92 * hr, BUN, 8, ang=tilt, k=3.7)
+    p.blob(*H(0, -0.78), 0.14 * hr, 0.1 * hr, (120, 50, 50), 4)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+    _limbs(p, arms, BUN, 11)
+
+
+def cloud(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), rain=0, t=0, ribbon=True):
+    """구름: 뭉게뭉게. rain>0 이면 눈물비가 내린다 (슬픔 표현)."""
+    H = _H(hx, hy, hr, tilt)
+    puffs = [(-0.75, 0.15, 0.48), (-0.35, -0.42, 0.55), (0.3, -0.5, 0.6), (0.8, 0.05, 0.5), (0.0, 0.25, 0.85)]
+    for dx, dy, r in puffs:
+        p.blob(*H(dx, dy), r * hr, r * 0.92 * hr, CLOUD, 8, k=dx * 3)
+    for dx, dy, r in puffs:
+        p.blob(*H(dx, dy), r * hr * 0.9, r * 0.92 * hr * 0.88, CLOUD, 0)
+    for i in range(rain):
+        x = -0.6 + 1.2 * i / max(1, rain - 1)
+        y = 1.05 + ((t * 0.12 + i * 0.37) % 0.6)
+        p.shape([H(x, y - 0.1), H(x + 0.06, y + 0.04), H(x, y + 0.1), H(x - 0.06, y + 0.04)], TEAR, 3)
+    if ribbon:
+        bow(p, *H(-0.4, -0.85), 0.28 * hr, tilt - 15)
+    face(p, hx, hy + 0.1 * hr, hr * 0.85, tilt, eyes, mouth, extras)
+    _limbs(p, arms, CLOUD, 11)
+
+
+def bolt(p, hx, hy, hr, tilt=0, eyes="dot", mouth="smile", extras=(), body=None, arms=(), flash=False):
+    """번개: 노란 동그라미 + 지그재그 번개 머리. flash면 번쩍 효과."""
+    H = _H(hx, hy, hr, tilt)
+    if flash:
+        for k in range(8):
+            a = 2 * math.pi * k / 8
+            p.line([H(1.25 * math.cos(a), 1.2 * math.sin(a)), H(1.55 * math.cos(a), 1.5 * math.sin(a))], 5, SPARK)
+    p.shape([H(-0.2, -0.75), H(0.15, -1.45), H(0.05, -1.05), H(0.38, -1.12), H(0.1, -0.7)], BOLT, 6)
+    for sgn in (-1, 1):
+        p.capsule(H(sgn * 0.45, 0.85), H(sgn * 0.5, 1.18), 0.11 * hr, 0.13 * hr, BOLT, 5)
+    p.blob(hx, hy, 1.05 * hr, 0.95 * hr, BOLT, 8, ang=tilt, k=0.3)
+    face(p, hx, hy, hr, tilt, eyes, mouth, extras)
+    _limbs(p, arms, BOLT, 11)
+
+
+CHARACTERS.update({"rice": rice, "gim": gim, "peach": peach, "sweetpotato": sweetpotato,
+                   "toast": toast, "butter": butter, "wonky": wonky, "dumpling": dumpling,
+                   "steamed_bun": steamed_bun, "cloud": cloud, "bolt": bolt})
+
+
 # ---------------- 소품 / 효과 (리빌형에서 추가) ----------------
 PUFF = (214, 226, 140)
 
