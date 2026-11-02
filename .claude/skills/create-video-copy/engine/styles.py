@@ -278,3 +278,52 @@ def render_hand(draw, w, h, boil=0, bg=None):
     draw(HandPen(lines, boil, fill_map=lambda c: c if c == INK else WHITE, line_scale=0.9))
     out = ImageChops.multiply(base, lines)
     return ImageChops.multiply(out, grain(out.size, 242, 0.9))
+
+
+# ---------------- 마커 화풍의 '살짝 다른' 변형들 ----------------
+def _darken(c, f=0.55):
+    return tuple(int(v * f) for v in c)
+
+
+def _soften(c, a=0.22, sat=0.8):
+    g = sum(c) / 3
+    c = tuple(g + (v - g) * sat for v in c)
+    return tuple(int(v + (255 - v) * a) for v in c)
+
+
+class ColorLinePen(StylePen):
+    """외곽선을 검정 대신 각 면 색의 진한 버전으로 (컬러 라인)."""
+
+    def shape(self, pts, fill=None, w=7, color=INK):
+        if fill is not None:
+            self.d.polygon([self.j(x, y) for x, y in pts], fill=fill)
+        if w:
+            col = color
+            if color == INK and fill is not None and fill != WHITE and sum(fill) > 120:
+                col = _darken(fill, 0.55)
+            elif color == INK:
+                col = (70, 58, 62)
+            self.stroke(pts, w, True, col)
+
+
+def render_variant(style, draw, w, h, boil=0, bg=None):
+    """marker(기준) | thin | soft | colorline | sticker | hand"""
+    base = bg.copy() if bg is not None else Image.new("RGB", (w * SS, h * SS), WHITE)
+    if style == "marker":
+        draw(C.Pen(base, boil))
+        return base
+    if style == "thin":
+        draw(StylePen(base, boil, line_scale=0.58, var=0.8))
+        return base
+    if style == "soft":
+        draw(StylePen(base, boil, fill_map=lambda c: c if c == INK else _soften(c),
+                      line_color=(66, 50, 54), line_scale=0.85))
+        return base
+    if style == "colorline":
+        draw(ColorLinePen(base, boil, line_scale=0.85))
+        return base
+    if style == "sticker":
+        return render_styled("sticker", draw, w, h, boil)
+    if style == "hand":
+        return render_hand(draw, w, h, boil, bg=base)
+    raise ValueError(style)
